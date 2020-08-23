@@ -95,7 +95,7 @@ export default function App() {
         status: dataDevice.status,
       })
       .then((response) => {
-        let { message, device } = response.data;
+        const { message, device } = response.data;
         setOpenAddDevice(false);
         setOpenSuccess(true);
         setSuccessMessage(message);
@@ -108,7 +108,12 @@ export default function App() {
           if (data.errors) {
             setOpenError(true);
             setError(data.errors);
+
+            return;
           }
+
+          setOpenError(true);
+          setError([{ msg: "an unexpected error, please try again" }]);
         }
       });
   };
@@ -175,6 +180,8 @@ export default function App() {
                                 setOpenError(true);
                                 setError(data.errors);
                               }
+
+                              return;
                             }
 
                             if (
@@ -187,7 +194,14 @@ export default function App() {
                               setError([
                                 { msg: data.err.errors.serial_number.message },
                               ]);
+
+                              return;
                             }
+
+                            setOpenError(true);
+                            setError([
+                              { msg: "an unexpected error, please try again" },
+                            ]);
 
                             reject();
                           });
