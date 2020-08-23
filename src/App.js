@@ -7,7 +7,10 @@ import DetailsIcon from "@material-ui/icons/Details";
 import DeleteForeverIcon from "@material-ui/icons/DeleteForever";
 import QueueIcon from "@material-ui/icons/Queue";
 import Alert from "@material-ui/lab/Alert";
+import TextField from "@material-ui/core/TextField";
 import Collapse from "@material-ui/core/Collapse";
+import FormControlLabel from "@material-ui/core/FormControlLabel";
+import Checkbox from "@material-ui/core/Checkbox";
 import axios from "axios";
 
 import FormDialog from "./components/dialog";
@@ -31,7 +34,10 @@ export default function App() {
       {
         icon: () => <QueueIcon />,
         tooltip: "Add Device",
-        onClick: (event, rowData) => alert("You saved " + rowData.name),
+        onClick: (event, rowData) => {
+          setOpenAddDevice(true);
+          setGateway(rowData);
+        },
       },
     ],
 
@@ -44,9 +50,16 @@ export default function App() {
     ],
   });
   const [gateways, setGateways] = useState([]);
-  const [openGateway, setOpenGateway] = useState(false);
+  const [openAddDevice, setOpenAddDevice] = useState(false);
   const [error, setError] = useState([]);
   const [openError, setOpenError] = useState(false);
+  const [openSuccess, setOpenSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [gateway, setGateway] = useState(null);
+  const [dataDevice, setDataDevice] = useState({
+    vendor: null,
+    status: false,
+  });
 
   useEffect(() => {
     async function fetchData() {
@@ -57,21 +70,70 @@ export default function App() {
     fetchData();
   }, []);
 
+  const handleOpenAddDevice = () => {
+    setOpenAddDevice(false);
+  };
+
+  const onChangeVendor = (e) => {
+    setDataDevice({
+      ...dataDevice,
+      vendor: e.target.value,
+    });
+  };
+
+  const onChangeStatus = (e) => {
+    setDataDevice({
+      ...dataDevice,
+      status: e.target.checked,
+    });
+  };
+
+  const handleAddDevice = () => {
+    axios
+      .post("http://localhost:8080/gateways/" + gateway._id, {
+        vendor: dataDevice.vendor,
+        status: dataDevice.status,
+      })
+      .then((response) => {
+        let { message, device } = response.data;
+        setOpenAddDevice(false);
+        setOpenSuccess(true);
+        setSuccessMessage(message);
+
+        gateway.devices.push(device);
+      })
+      .catch((e) => {
+        const { status, data } = e.response;
+        if (status === 422 && data.errors.length) {
+          if (data.errors) {
+            setOpenError(true);
+            setError(data.errors);
+          }
+        }
+      });
+  };
+
   return (
     <div className="App">
-      <div style={{ maxWidth: "100%" }}>
+      <div style={{ maxWidth: "100%", marginTop: 20 }}>
         <Container maxWidth="lg">
           <Grid container spacing={3}>
             <Grid item xs={12}>
               <Collapse in={openError}>
-                <Alert severity="error" onClose={() => {}}>
+                <Alert severity="error" onClose={() => setOpenError(false)}>
                   <ul>
                     {openError && error.map((e) => <li key={e.id}>{e.msg}</li>)}
                   </ul>
                 </Alert>
               </Collapse>
+
+              <Collapse in={openSuccess}>
+                <Alert severity="success" onClose={() => setOpenSuccess(false)}>
+                  <ul>{successMessage}</ul>
+                </Alert>
+              </Collapse>
             </Grid>
-            
+
             <Grid item xs={12}>
               <MaterialTable
                 icons={tableIcons}
@@ -88,6 +150,9 @@ export default function App() {
                   onRowAdd: (newData) =>
                     new Promise((resolve, reject) => {
                       setTimeout(() => {
+                        setOpenError(false);
+                        setError([]);
+
                         axios
                           .post("http://localhost:8080/gateways", {
                             name: newData.name,
@@ -97,12 +162,14 @@ export default function App() {
                           .then((data) => {
                             if (data && data.message !== undefined) {
                               setGateways([...gateways, newData]);
-
+                              setOpenSuccess(true);
+                              setSuccessMessage(data.message);
                               resolve();
                             }
                           })
                           .catch((e) => {
                             const { status, data } = e.response;
+
                             if (status === 422 && data.errors.length) {
                               if (data.errors) {
                                 setOpenError(true);
@@ -110,9 +177,21 @@ export default function App() {
                               }
                             }
 
+                            if (
+                              status === 500 &&
+                              data.err &&
+                              data.err.errors &&
+                              data.err.errors.serial_number
+                            ) {
+                              setOpenError(true);
+                              setError([
+                                { msg: data.err.errors.serial_number.message },
+                              ]);
+                            }
+
                             reject();
                           });
-                      }, 1000);
+                      });
                     }),
                 }}
                 detailPanel={[
@@ -141,11 +220,16 @@ export default function App() {
                       return (
                         <div
                           style={{
-                            fontSize: 20,
+                            fontSize: 12,
                             textAlign: "center",
                           }}
                         >
-                          Ip: {rowData.ipv4}
+                          <strong>Name:</strong> {rowData.name} <br />{" "}
+                          <strong>Serial Number:</strong>
+                          {rowData.serial_number} <br /> <strong>Ip:</strong>{" "}
+                          {rowData.ipv4} <br />
+                          <strong>Amount of Device:</strong>{" "}
+                          {rowData.devices.length}
                         </div>
                       );
                     },
@@ -156,7 +240,30 @@ export default function App() {
           </Grid>
         </Container>
 
-        <FormDialog open={openGateway}></FormDialog>
+        <FormDialog
+          open={openAddDevice}
+          title="Add Device"
+          object={gateway}
+          handleClose={handleOpenAddDevice}
+          handleAdd={handleAddDevice}
+        >
+          <Grid container>
+            <Grid item xs={12}>
+              <TextField
+                id="vendor"
+                label="Vendor"
+                fullWidth="sm"
+                onChange={onChangeVendor}
+              />
+
+              <FormControlLabel
+                control={<Checkbox name="status" />}
+                label="Status"
+                onChange={onChangeStatus}
+              />
+            </Grid>
+          </Grid>
+        </FormDialog>
       </div>
     </div>
   );
