@@ -104,7 +104,7 @@ export default function App() {
         setOpenSuccess(true);
         setSuccessMessage(message);
 
-        gateway.devices.push(device);
+        fetchData();
       })
       .catch((e) => {
         const { status, data } = e.response;
@@ -146,7 +146,6 @@ export default function App() {
         setOpenSuccess(true);
         setSuccessMessage(message);
 
-        // TODO: implement better delete for device in the client
         fetchData();
       })
       .catch((e) => {
