@@ -65,6 +65,8 @@ export default function App() {
     status: false,
   });
 
+  const [connected, setConnected] = useState(true);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -130,10 +132,20 @@ export default function App() {
       });
   };
 
-  const fetchData = async () => {
-    const { data } = await axios.get("http://localhost:8080/gateways");
-
-    setGateways(data.gateways);
+  const fetchData = () => {
+    axios
+      .get("http://localhost:8080/gateways")
+      .then((response) => {
+        setGateways(response.data.gateways);
+      })
+      .catch((e) => {
+        setConnected(false);
+        setOpenError(true);
+        setError([{ msg: "The server is not starting." }]);
+        setTimeout(() => {
+          fetchData();
+        }, 10000);
+      });
   };
 
   const handleDeleteDevice = () => {
@@ -187,116 +199,122 @@ export default function App() {
             </Grid>
 
             <Grid item xs={12}>
-              <MaterialTable
-                icons={tableIcons}
-                columns={state.columns}
-                data={gateways}
-                title="Gateways"
-                actions={state.actions}
-                options={{
-                  actionsColumnIndex: -1,
-                  search: false,
-                  addRowPosition: "first",
-                }}
-                editable={{
-                  onRowAdd: (newData) =>
-                    new Promise((resolve, reject) => {
-                      setTimeout(() => {
-                        setOpenError(false);
-                        setError([]);
+              <Collapse in={connected}>
+                <MaterialTable
+                  icons={tableIcons}
+                  columns={state.columns}
+                  data={gateways}
+                  title="Gateways"
+                  actions={state.actions}
+                  options={{
+                    actionsColumnIndex: -1,
+                    search: false,
+                    addRowPosition: "first",
+                  }}
+                  editable={{
+                    onRowAdd: (newData) =>
+                      new Promise((resolve, reject) => {
+                        setTimeout(() => {
+                          setOpenError(false);
+                          setError([]);
 
-                        axios
-                          .post("http://localhost:8080/gateways", {
-                            name: newData.name,
-                            serial_number: newData.serial_number,
-                            ip: newData.ipv4,
-                          })
-                          .then((data) => {
-                            if (data && data.message !== undefined) {
-                              setGateways([...gateways, newData]);
-                              setOpenSuccess(true);
-                              setSuccessMessage(data.message);
-                              resolve();
-                            }
-                          })
-                          .catch((e) => {
-                            const { status, data } = e.response;
-
-                            if (status === 422 && data.errors.length) {
-                              if (data.errors) {
-                                setOpenError(true);
-                                setError(data.errors);
+                          axios
+                            .post("http://localhost:8080/gateways", {
+                              name: newData.name,
+                              serial_number: newData.serial_number,
+                              ip: newData.ipv4,
+                            })
+                            .then((data) => {
+                              if (data && data.message !== undefined) {
+                                setGateways([...gateways, newData]);
+                                setOpenSuccess(true);
+                                setSuccessMessage(data.message);
+                                resolve();
                               }
-                              reject();
-                              return;
-                            }
+                            })
+                            .catch((e) => {
+                              const { status, data } = e.response;
 
-                            if (
-                              status === 500 &&
-                              data.err &&
-                              data.err.errors &&
-                              data.err.errors.serial_number
-                            ) {
+                              if (status === 422 && data.errors.length) {
+                                if (data.errors) {
+                                  setOpenError(true);
+                                  setError(data.errors);
+                                }
+                                reject();
+                                return;
+                              }
+
+                              if (
+                                status === 500 &&
+                                data.err &&
+                                data.err.errors &&
+                                data.err.errors.serial_number
+                              ) {
+                                setOpenError(true);
+                                setError([
+                                  {
+                                    msg: data.err.errors.serial_number.message,
+                                  },
+                                ]);
+                                reject();
+                                return;
+                              }
+
                               setOpenError(true);
                               setError([
-                                { msg: data.err.errors.serial_number.message },
+                                {
+                                  msg: "an unexpected error, please try again",
+                                },
                               ]);
+
                               reject();
-                              return;
-                            }
-
-                            setOpenError(true);
-                            setError([
-                              { msg: "an unexpected error, please try again" },
-                            ]);
-
-                            reject();
-                          });
-                      });
-                    }),
-                }}
-                detailPanel={[
-                  {
-                    tooltip: "Show Devices",
-                    render: (rowData) => {
-                      return (
-                        <MaterialTable
-                          icons={tableIcons}
-                          columns={state.columnsDevices}
-                          data={rowData.devices}
-                          title="Devices"
-                          actions={state.actionsDevices}
-                          options={{
-                            actionsColumnIndex: -1,
-                            search: false,
-                          }}
-                        />
-                      );
+                            });
+                        });
+                      }),
+                  }}
+                  detailPanel={[
+                    {
+                      tooltip: "Show Devices",
+                      render: (rowData) => {
+                        return (
+                          <MaterialTable
+                            icons={tableIcons}
+                            columns={state.columnsDevices}
+                            data={rowData.devices}
+                            title="Devices"
+                            actions={state.actionsDevices}
+                            options={{
+                              actionsColumnIndex: -1,
+                              search: false,
+                            }}
+                          />
+                        );
+                      },
                     },
-                  },
-                  {
-                    icon: () => <DetailsIcon />,
-                    tooltip: "Show Detail",
-                    render: (rowData) => {
-                      return (
-                        <div
-                          style={{
-                            fontSize: 12,
-                            textAlign: "center",
-                          }}
-                        >
-                          <strong>Name:</strong> {rowData.name} <br />{" "}
-                          <strong>Serial Number:</strong>
-                          {rowData.serial_number} <br /> <strong>Ip:</strong>{" "}
-                          {rowData.ipv4} <br />
-                          <strong>Amount of Device:</strong>{" "}
-                          {rowData.devices.length}
-                        </div>
-                      );
+                    {
+                      icon: () => <DetailsIcon />,
+                      tooltip: "Show Detail",
+                      render: (rowData) => {
+                        return (
+                          <div
+                            style={{
+                              fontSize: 12,
+                              textAlign: "center",
+                            }}
+                          >
+                            <strong>Name:</strong> {rowData.name} <br />{" "}
+                            <strong>Serial Number:</strong>
+                            {rowData.serial_number} <br /> <strong>Ip:</strong>{" "}
+                            {rowData.ipv4} <br />
+                            <strong>Amount of Device:</strong>{" "}
+                            {rowData.devices.length}
+                          </div>
+                        );
+                      },
                     },
-                  },
-                ]}
-              />
+                  ]}
+                />
+              </Collapse>
             </Grid>
           </Grid>
         </Container>
