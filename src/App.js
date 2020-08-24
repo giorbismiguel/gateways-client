@@ -68,7 +68,7 @@ export default function App() {
   const [connected, setConnected] = useState(true);
 
   useEffect(() => {
-    fetchData();
+    fetchGateways();
   }, []);
 
   const handleOpenAddDevice = () => {
@@ -105,7 +105,7 @@ export default function App() {
         setOpenSuccess(true);
         setSuccessMessage(message);
 
-        fetchData();
+        fetchGateways();
       })
       .catch((e) => {
         const { status, data } = e.response;
@@ -132,7 +132,7 @@ export default function App() {
       });
   };
 
-  const fetchData = () => {
+  const fetchGateways = () => {
     axios
       .get("http://localhost:8080/gateways")
       .then((response) => {
@@ -143,7 +143,7 @@ export default function App() {
         setOpenError(true);
         setError([{ msg: "The server is not starting." }]);
         setTimeout(() => {
-          fetchData();
+          fetchGateways();
         }, 10000);
       });
   };
@@ -157,7 +157,7 @@ export default function App() {
         setOpenSuccess(true);
         setSuccessMessage(message);
 
-        fetchData();
+        fetchGateways();
       })
       .catch((e) => {
         const { status, data } = e.response;
