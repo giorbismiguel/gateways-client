@@ -26,7 +26,7 @@ export default function FormDialog(props) {
             Cancel
           </Button>
           <Button onClick={props.handleAdd} color="primary">
-            Add
+            {props.textPrimary}
           </Button>
         </DialogActions>
       </Dialog>

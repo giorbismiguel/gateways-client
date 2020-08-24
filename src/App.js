@@ -45,7 +45,10 @@ export default function App() {
       {
         icon: () => <DeleteForeverIcon />,
         tooltip: "Delete Device",
-        onClick: (event, rowData) => alert("You saved " + rowData.name),
+        onClick: (event, rowData) => {
+          setOpenDeleteDevice(true);
+          setDevice(rowData);
+        },
       },
     ],
   });
@@ -56,22 +59,23 @@ export default function App() {
   const [openSuccess, setOpenSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
   const [gateway, setGateway] = useState(null);
+  const [device, setDevice] = useState(null);
+  const [openDeleteDevice, setOpenDeleteDevice] = useState(false);
   const [dataDevice, setDataDevice] = useState({
     vendor: null,
     status: false,
   });
 
   useEffect(() => {
-    async function fetchData() {
-      const { data } = await axios.get("http://localhost:8080/gateways");
-
-      setGateways(data.gateways);
-    }
     fetchData();
   }, []);
 
   const handleOpenAddDevice = () => {
     setOpenAddDevice(false);
+  };
+
+  const handleCloseDeleteDevice = () => {
+    setOpenDeleteDevice(false);
   };
 
   const onChangeVendor = (e) => {
@@ -104,6 +108,50 @@ export default function App() {
       })
       .catch((e) => {
         const { status, data } = e.response;
+        setOpenAddDevice(false);
+
+        if (status === 422 && data.message !== undefined) {
+          setOpenError(true);
+          setError([{ msg: data.message }]);
+
+          return;
+        }
+
+        if (status === 422 && data.errors !== undefined && data.errors.length) {
+          if (data.errors) {
+            setOpenError(true);
+            setError(data.errors);
+
+            return;
+          }
+
+          setOpenError(true);
+          setError([{ msg: "an unexpected error, please try again" }]);
+        }
+      });
+  };
+
+  const fetchData = async () => {
+    const { data } = await axios.get("http://localhost:8080/gateways");
+
+    setGateways(data.gateways);
+  };
+
+  const handleDeleteDevice = () => {
+    axios
+      .delete("http://localhost:8080/devices/" + device._id)
+      .then((response) => {
+        const { message } = response.data;
+        setOpenDeleteDevice(false);
+        setOpenSuccess(true);
+        setSuccessMessage(message);
+
+        // TODO: implement better delete for device in the client
+        fetchData();
+      })
+      .catch((e) => {
+        const { status, data } = e.response;
+
         if (status === 422 && data.errors.length) {
           if (data.errors) {
             setOpenError(true);
@@ -127,7 +175,8 @@ export default function App() {
               <Collapse in={openError}>
                 <Alert severity="error" onClose={() => setOpenError(false)}>
                   <ul>
-                    {openError && error.map((e) => <li key={e.id}>{e.msg}</li>)}
+                    {openError &&
+                      error.map((e) => <li key={e.msg}>{e.msg}</li>)}
                   </ul>
                 </Alert>
               </Collapse>
@@ -180,7 +229,7 @@ export default function App() {
                                 setOpenError(true);
                                 setError(data.errors);
                               }
-
+                              reject();
                               return;
                             }
 
@@ -194,7 +243,7 @@ export default function App() {
                               setError([
                                 { msg: data.err.errors.serial_number.message },
                               ]);
-
+                              reject();
                               return;
                             }
 
@@ -260,6 +309,7 @@ export default function App() {
           object={gateway}
           handleClose={handleOpenAddDevice}
           handleAdd={handleAddDevice}
+          textPrimary="Add"
         >
           <Grid container>
             <Grid item xs={12}>
@@ -278,6 +328,17 @@ export default function App() {
             </Grid>
           </Grid>
         </FormDialog>
+
+        <FormDialog
+          open={openDeleteDevice}
+          contentText={
+            device &&
+            `Are you sure you want to delete device with UID: ${device.uid}`
+          }
+          handleClose={handleCloseDeleteDevice}
+          handleAdd={handleDeleteDevice}
+          textPrimary="Delete"
+        ></FormDialog>
       </div>
     </div>
   );
