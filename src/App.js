@@ -100,7 +100,7 @@ export default function App() {
         status: dataDevice.status,
       })
       .then((response) => {
-        const { message, device } = response.data;
+        const { message } = response.data;
         setOpenAddDevice(false);
         setOpenSuccess(true);
         setSuccessMessage(message);
