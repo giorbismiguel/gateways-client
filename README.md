@@ -4,9 +4,9 @@
 
 - Node Package Manager >= 6.0.0 (`npm -v`)
 - NodeJS >= 10.16.3 (`node -v`)
-- React: >= 16.13.1
+- React >= 16.13.1
 
-## Server for these client.
+## Server
 
 - You can use: [Gateways Server](https://github.com/giorbismiguel/gateways-server.git)
 
@@ -22,7 +22,7 @@ $ git clone https://github.com/giorbismiguel/gateways-client.git
 $ npm install
 ```
 
-- Runs the app in the development mode, The server will be ready in http://localhost:8080
+- Runs the app and open in the browser the following link: http://localhost:3000
 ```
 $ npm start
 ```
