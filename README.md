@@ -1,4 +1,4 @@
-# Test for Musala Soft | Gateways Client
+# Gateways Client
 
 ## Requirements
 
