@@ -22,7 +22,7 @@ $ git clone https://github.com/giorbismiguel/gateways-client.git
 $ npm install
 ```
 
-- Runs the app and open in the browser the following link: http://localhost:3000
+- Runs the app and open: http://localhost:3000 in the browser 
 ```
 $ npm start
 ```
