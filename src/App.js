@@ -12,7 +12,6 @@ import Collapse from "@material-ui/core/Collapse";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
 import Checkbox from "@material-ui/core/Checkbox";
 import axios from "axios";
-
 import FormDialog from "./components/dialog";
 
 export default function App() {
@@ -315,7 +314,7 @@ export default function App() {
               <TextField
                 id="vendor"
                 label="Vendor"
-                fullWidth="sm"
+                fullWidth={true}
                 onChange={onChangeVendor}
               />
 

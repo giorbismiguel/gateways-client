@@ -13,7 +13,7 @@ export default function FormDialog(props) {
         open={props.open}
         onClose={props.handleClose}
         aria-labelledby="form-dialog-title"
-        fullWidth="true"
+        fullWidth={true}
         maxWidth="sm"
       >
         <DialogTitle id="form-dialog-title">{props.title}</DialogTitle>
